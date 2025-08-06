@@ -1,6 +1,11 @@
+console.log("JS cargado correctamente");
+
+// Configuración de Supabase
 const SUPABASE_URL = "https://sdpdtlatzvlhrtmeexit.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkcGR0bGF0enZsaHJ0bWVleGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1MDQ5NTIsImV4cCI6MjA3MDA4MDk1Mn0.D1Iiqo5EVRLAAd2jcYHUo5I59VzPZnbfsd8jg4RNYwU" ;
-                                                                                                                                                                                                                                                             const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkcGR0bGF0enZsaHJ0bWVleGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1MDQ5NTIsImV4cCI6MjA3MDA4MDk1Mn0.D1Iiqo5EVRLAAd2jcYHUo5I59VzPZnbfsd8jg4RNYwU";
+const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Agregar estudiante
 async function agregarEstudiante() {
   const nombre = document.getElementById("nombre").value;
   const correo = document.getElementById("correo").value;
@@ -31,9 +36,10 @@ async function agregarEstudiante() {
   }
 }
 
+// Cargar estudiantes
 async function cargarEstudiantes() {
   const { data, error } = await client
-    .from("estudiantes")  //Nombre de BD
+    .from("estudiantes")
     .select("*")
     .order("created_at", { ascending: false });
 
@@ -44,15 +50,15 @@ async function cargarEstudiantes() {
 
   const lista = document.getElementById("lista-estudiantes");
   lista.innerHTML = "";
+
   data.forEach((est) => {
     const item = document.createElement("li");
-    item.textContent = ${est.nombre} (${est.clase});
+    item.textContent = `${est.nombre} (${est.clase})`;
     lista.appendChild(item);
   });
 }
 
-cargarEstudiantes();
-
+// Subir archivo
 async function subirArchivo() {
   const archivoInput = document.getElementById("archivo");
   const archivo = archivoInput.files[0];
@@ -72,9 +78,9 @@ async function subirArchivo() {
     return;
   }
 
-  const nombreRuta = ${user.id}/${archivo.name}; 
+  const nombreRuta = `${user.id}/${archivo.name}`;
   const { data, error } = await client.storage
-    .from("tareas") //Nombre del bucket
+    .from("tareas")
     .upload(nombreRuta, archivo, {
       cacheControl: "3600",
       upsert: false,
@@ -84,10 +90,11 @@ async function subirArchivo() {
     alert("Error al subir: " + error.message);
   } else {
     alert("Archivo subido correctamente.");
-    listarArchivos(); 
+    listarArchivos();
   }
 }
 
+// Listar archivos
 async function listarArchivos() {
   const {
     data: { user },
@@ -101,7 +108,7 @@ async function listarArchivos() {
 
   const { data, error } = await client.storage
     .from("tareas")
-    .list(${user.id}, { limit: 20 });
+    .list(`${user.id}`, { limit: 20 });
 
   const lista = document.getElementById("lista-archivos");
   lista.innerHTML = "";
@@ -114,7 +121,7 @@ async function listarArchivos() {
   data.forEach(async (archivo) => {
     const { data: signedUrlData, error: signedUrlError } = await client.storage
       .from("tareas")
-      .createSignedUrl(${user.id}/${archivo.name}, 60); 
+      .createSignedUrl(`${user.id}/${archivo.name}`, 60);
 
     if (signedUrlError) {
       console.error("Error al generar URL firmada:", signedUrlError.message);
@@ -122,7 +129,6 @@ async function listarArchivos() {
     }
 
     const publicUrl = signedUrlData.signedUrl;
-
     const item = document.createElement("li");
 
     const esImagen = archivo.name.match(/\.(jpg|jpeg|png|gif)$/i);
@@ -141,14 +147,14 @@ async function listarArchivos() {
         <a href="${publicUrl}" target="_blank">Ver PDF</a>
       `;
     } else {
-      item.innerHTML = <a href="${publicUrl}" target="_blank">${archivo.name}</a>;
+      item.innerHTML = `<a href="${publicUrl}" target="_blank">${archivo.name}</a>`;
     }
 
     lista.appendChild(item);
   });
 }
-listarArchivos();
 
+// Cerrar sesión
 async function cerrarSesion() {
   const { error } = await client.auth.signOut();
 
@@ -160,3 +166,7 @@ async function cerrarSesion() {
     window.location.href = "index.html";
   }
 }
+
+// Ejecutar funciones al cargar
+cargarEstudiantes();
+listarArchivos();
