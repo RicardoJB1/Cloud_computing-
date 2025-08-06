@@ -1,6 +1,6 @@
-const SUPABASE_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkcGR0bGF0enZsaHJ0bWVleGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1MDQ5NTIsImV4cCI6MjA3MDA4MDk1Mn0.D1Iiqo5EVRLAAd2jcYHUo5I59VzPZnbfsd8jg4RNYwU
-;
 const SUPABASE_URL = "https://sdpdtlatzvlhrtmeexit.supabase.co";
+const SUPABASE_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkcGR0bGF0enZsaHJ0bWVleGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1MDQ5NTIsImV4cCI6MjA3MDA4MDk1Mn0.D1Iiqo5EVRLAAd2jcYHUo5I59VzPZnbfsd8jg4RNYwU ;
+
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function toggleForms() {
