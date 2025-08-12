@@ -48,10 +48,16 @@ async function cargarEstudiantes() {
     return;
   }
 
+  // Lista de estudiantes visible
   const lista = document.getElementById("lista-estudiantes");
   lista.innerHTML = "";
 
+  // Select de estudiantes para subir archivo
+  const selectEstudiante = document.getElementById("select-estudiante");
+  selectEstudiante.innerHTML = '<option value="">-- Selecciona un estudiante --</option>';
+
   data.forEach((est) => {
+    // Agregar a la lista visible
     const item = document.createElement("li");
     item.classList.add("list-group-item", "d-flex", "justify-content-between", "align-items-center");
 
@@ -75,6 +81,12 @@ async function cargarEstudiantes() {
     item.appendChild(info);
     item.appendChild(acciones);
     lista.appendChild(item);
+
+    // Agregar al <select>
+    const option = document.createElement("option");
+    option.value = est.id;
+    option.textContent = est.nombre;
+    selectEstudiante.appendChild(option);
   });
 }
 
@@ -140,9 +152,15 @@ function limpiarFormulario() {
 async function subirArchivo() {
   const archivoInput = document.getElementById("archivo");
   const archivo = archivoInput.files[0];
+  const estudianteId = document.getElementById("select-estudiante").value;
 
   if (!archivo) {
     alert("Selecciona un archivo primero.");
+    return;
+  }
+
+  if (!estudianteId) {
+    alert("Selecciona un estudiante.");
     return;
   }
 
@@ -152,7 +170,8 @@ async function subirArchivo() {
     return;
   }
 
-  const nombreRuta = `${user.id}/${archivo.name}`;
+  // Ruta: usuario/estudiante/archivo
+  const nombreRuta = `${user.id}/${estudianteId}/${archivo.name}`;
   const { error } = await client.storage
     .from("tareas")
     .upload(nombreRuta, archivo, {
