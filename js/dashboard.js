@@ -53,10 +53,22 @@ async function cargarEstudiantes() {
 
   data.forEach((est) => {
     const item = document.createElement("li");
-    item.textContent = `${est.nombre} (${est.clase})`;
+    item.classList.add("list-group-item", "d-flex", "justify-content-between", "align-items-center");
+    item.innerHTML = `
+      <span><strong>${est.nombre}</strong> (${est.clase}) - ${est.correo}</span>
+      <div>
+        <button class="btn btn-warning btn-sm me-2" onclick="editarEstudiante(${est.id}, '${est.nombre}', '${est.correo}', '${est.clase}')">
+          <i class="bi bi-pencil"></i>
+        </button>
+        <button class="btn btn-danger btn-sm" onclick="eliminarEstudiante(${est.id})">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    `;
     lista.appendChild(item);
   });
 }
+
 
 // Subir archivo
 async function subirArchivo() {
@@ -153,6 +165,66 @@ async function listarArchivos() {
     lista.appendChild(item);
   });
 }
+//funcion para eliminar estudiante
+async function eliminarEstudiante(id) {
+  if (!confirm("¿Seguro que quieres eliminar este estudiante?")) return;
+
+  const { error } = await client
+    .from("estudiantes")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    alert("Error al eliminar: " + error.message);
+  } else {
+    alert("Estudiante eliminado");
+    cargarEstudiantes();
+  }
+}
+
+//funcion para actualisar estudiante 
+let estudianteEditandoId = null;
+
+function editarEstudiante(id, nombre, correo, clase) {
+  document.getElementById("nombre").value = nombre;
+  document.getElementById("correo").value = correo;
+  document.getElementById("clase").value = clase;
+  estudianteEditandoId = id;
+
+  const btn = document.querySelector("button[onclick='agregarEstudiante()']");
+  btn.innerHTML = '<i class="bi bi-check-circle"></i> Actualizar';
+  btn.onclick = actualizarEstudiante;
+}
+
+async function actualizarEstudiante() {
+  const nombre = document.getElementById("nombre").value;
+  const correo = document.getElementById("correo").value;
+  const clase = document.getElementById("clase").value;
+
+  const { error } = await client
+    .from("estudiantes")
+    .update({ nombre, correo, clase })
+    .eq("id", estudianteEditandoId);
+
+  if (error) {
+    alert("Error al actualizar: " + error.message);
+  } else {
+    alert("Estudiante actualizado");
+    estudianteEditandoId = null;
+
+    // Restaurar botón a "Agregar"
+    const btn = document.querySelector("button[onclick='actualizarEstudiante()']");
+    btn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar';
+    btn.onclick = agregarEstudiante;
+
+    // Limpiar formulario y recargar lista
+    document.getElementById("nombre").value = "";
+    document.getElementById("correo").value = "";
+    document.getElementById("clase").value = "";
+    cargarEstudiantes();
+  }
+}
+
 
 // Cerrar sesión
 async function cerrarSesion() {
@@ -166,6 +238,7 @@ async function cerrarSesion() {
     window.location.href = "index.html";
   }
 }
+
 
 // Ejecutar funciones al cargar
 cargarEstudiantes();
