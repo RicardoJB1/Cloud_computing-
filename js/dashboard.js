@@ -5,17 +5,16 @@ const SUPABASE_URL = "https://sdpdtlatzvlhrtmeexit.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkcGR0bGF0enZsaHJ0bWVleGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1MDQ5NTIsImV4cCI6MjA3MDA4MDk1Mn0.D1Iiqo5EVRLAAd2jcYHUo5I59VzPZnbfsd8jg4RNYwU";
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ID del estudiante que se está editando
+let estudianteEditandoId = null;
+
 // Agregar estudiante
 async function agregarEstudiante() {
-  const nombre = document.getElementById("nombre").value;
-  const correo = document.getElementById("correo").value;
-  const clase = document.getElementById("clase").value;
+  const nombre = document.getElementById("nombre").value.trim();
+  const correo = document.getElementById("correo").value.trim();
+  const clase = document.getElementById("clase").value.trim();
 
-  const {
-    data: { user },
-    error: userError,
-  } = await client.auth.getUser();
-
+  const { data: { user }, error: userError } = await client.auth.getUser();
   if (userError || !user) {
     alert("No estás autenticado.");
     return;
@@ -32,6 +31,7 @@ async function agregarEstudiante() {
     alert("Error al agregar: " + error.message);
   } else {
     alert("Estudiante agregado");
+    limpiarFormulario();
     cargarEstudiantes();
   }
 }
@@ -54,21 +54,87 @@ async function cargarEstudiantes() {
   data.forEach((est) => {
     const item = document.createElement("li");
     item.classList.add("list-group-item", "d-flex", "justify-content-between", "align-items-center");
-    item.innerHTML = `
-      <span><strong>${est.nombre}</strong> (${est.clase}) - ${est.correo}</span>
-      <div>
-        <button class="btn btn-warning btn-sm me-2" onclick="editarEstudiante(${est.id}, '${est.nombre}', '${est.correo}', '${est.clase}')">
-          <i class="bi bi-pencil"></i>
-        </button>
-        <button class="btn btn-danger btn-sm" onclick="eliminarEstudiante(${est.id})">
-          <i class="bi bi-trash"></i>
-        </button>
-      </div>
-    `;
+
+    const info = document.createElement("span");
+    info.innerHTML = `<strong>${est.nombre}</strong> (${est.clase}) - ${est.correo}`;
+
+    const btnEditar = document.createElement("button");
+    btnEditar.classList.add("btn", "btn-warning", "btn-sm", "me-2");
+    btnEditar.innerHTML = '<i class="bi bi-pencil"></i>';
+    btnEditar.addEventListener("click", () => editarEstudiante(est.id, est.nombre, est.correo, est.clase));
+
+    const btnEliminar = document.createElement("button");
+    btnEliminar.classList.add("btn", "btn-danger", "btn-sm");
+    btnEliminar.innerHTML = '<i class="bi bi-trash"></i>';
+    btnEliminar.addEventListener("click", () => eliminarEstudiante(est.id));
+
+    const acciones = document.createElement("div");
+    acciones.appendChild(btnEditar);
+    acciones.appendChild(btnEliminar);
+
+    item.appendChild(info);
+    item.appendChild(acciones);
     lista.appendChild(item);
   });
 }
 
+// Editar estudiante
+function editarEstudiante(id, nombre, correo, clase) {
+  document.getElementById("nombre").value = nombre;
+  document.getElementById("correo").value = correo;
+  document.getElementById("clase").value = clase;
+  estudianteEditandoId = id;
+
+  const btn = document.querySelector(".btn-custom");
+  btn.innerHTML = '<i class="bi bi-check-circle"></i> Actualizar';
+  btn.onclick = actualizarEstudiante;
+}
+
+// Actualizar estudiante
+async function actualizarEstudiante() {
+  const nombre = document.getElementById("nombre").value.trim();
+  const correo = document.getElementById("correo").value.trim();
+  const clase = document.getElementById("clase").value.trim();
+
+  const { error } = await client
+    .from("estudiantes")
+    .update({ nombre, correo, clase })
+    .eq("id", estudianteEditandoId);
+
+  if (error) {
+    alert("Error al actualizar: " + error.message);
+  } else {
+    alert("Estudiante actualizado");
+    estudianteEditandoId = null;
+    limpiarFormulario();
+    cargarEstudiantes();
+  }
+}
+
+// Eliminar estudiante
+async function eliminarEstudiante(id) {
+  if (!confirm("¿Seguro que quieres eliminar este estudiante?")) return;
+
+  const { error } = await client.from("estudiantes").delete().eq("id", id);
+
+  if (error) {
+    alert("Error al eliminar: " + error.message);
+  } else {
+    alert("Estudiante eliminado");
+    cargarEstudiantes();
+  }
+}
+
+// Limpiar formulario y restaurar botón
+function limpiarFormulario() {
+  document.getElementById("nombre").value = "";
+  document.getElementById("correo").value = "";
+  document.getElementById("clase").value = "";
+
+  const btn = document.querySelector(".btn-custom");
+  btn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar';
+  btn.onclick = agregarEstudiante;
+}
 
 // Subir archivo
 async function subirArchivo() {
@@ -80,18 +146,14 @@ async function subirArchivo() {
     return;
   }
 
-  const {
-    data: { user },
-    error: userError,
-  } = await client.auth.getUser();
-
+  const { data: { user }, error: userError } = await client.auth.getUser();
   if (userError || !user) {
     alert("Sesión no válida.");
     return;
   }
 
   const nombreRuta = `${user.id}/${archivo.name}`;
-  const { data, error } = await client.storage
+  const { error } = await client.storage
     .from("tareas")
     .upload(nombreRuta, archivo, {
       cacheControl: "3600",
@@ -108,11 +170,7 @@ async function subirArchivo() {
 
 // Listar archivos
 async function listarArchivos() {
-  const {
-    data: { user },
-    error: userError,
-  } = await client.auth.getUser();
-
+  const { data: { user }, error: userError } = await client.auth.getUser();
   if (userError || !user) {
     alert("Sesión no válida.");
     return;
@@ -130,14 +188,14 @@ async function listarArchivos() {
     return;
   }
 
-  data.forEach(async (archivo) => {
+  for (const archivo of data) {
     const { data: signedUrlData, error: signedUrlError } = await client.storage
       .from("tareas")
       .createSignedUrl(`${user.id}/${archivo.name}`, 60);
 
     if (signedUrlError) {
       console.error("Error al generar URL firmada:", signedUrlError.message);
-      return;
+      continue;
     }
 
     const publicUrl = signedUrlData.signedUrl;
@@ -163,68 +221,8 @@ async function listarArchivos() {
     }
 
     lista.appendChild(item);
-  });
-}
-//funcion para eliminar estudiante
-async function eliminarEstudiante(id) {
-  if (!confirm("¿Seguro que quieres eliminar este estudiante?")) return;
-
-  const { error } = await client
-    .from("estudiantes")
-    .delete()
-    .eq("id", id);
-
-  if (error) {
-    alert("Error al eliminar: " + error.message);
-  } else {
-    alert("Estudiante eliminado");
-    cargarEstudiantes();
   }
 }
-
-//funcion para actualisar estudiante 
-let estudianteEditandoId = null;
-
-function editarEstudiante(id, nombre, correo, clase) {
-  document.getElementById("nombre").value = nombre;
-  document.getElementById("correo").value = correo;
-  document.getElementById("clase").value = clase;
-  estudianteEditandoId = id;
-
-  const btn = document.querySelector("button[onclick='agregarEstudiante()']");
-  btn.innerHTML = '<i class="bi bi-check-circle"></i> Actualizar';
-  btn.onclick = actualizarEstudiante;
-}
-
-async function actualizarEstudiante() {
-  const nombre = document.getElementById("nombre").value;
-  const correo = document.getElementById("correo").value;
-  const clase = document.getElementById("clase").value;
-
-  const { error } = await client
-    .from("estudiantes")
-    .update({ nombre, correo, clase })
-    .eq("id", estudianteEditandoId);
-
-  if (error) {
-    alert("Error al actualizar: " + error.message);
-  } else {
-    alert("Estudiante actualizado");
-    estudianteEditandoId = null;
-
-    // Restaurar botón a "Agregar"
-    const btn = document.querySelector("button[onclick='actualizarEstudiante()']");
-    btn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar';
-    btn.onclick = agregarEstudiante;
-
-    // Limpiar formulario y recargar lista
-    document.getElementById("nombre").value = "";
-    document.getElementById("correo").value = "";
-    document.getElementById("clase").value = "";
-    cargarEstudiantes();
-  }
-}
-
 
 // Cerrar sesión
 async function cerrarSesion() {
@@ -238,7 +236,6 @@ async function cerrarSesion() {
     window.location.href = "index.html";
   }
 }
-
 
 // Ejecutar funciones al cargar
 cargarEstudiantes();
